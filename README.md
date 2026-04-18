@@ -1,40 +1,50 @@
-# Product Manager API
+# REST Auth API
 
-A simple RESTful API for managing products built with **Node.js**, **Express.js**, and **SQL Server**. This project demonstrates core backend development concepts including async/await, Promise handling, MVC architecture, and database operations.
+A RESTful API with **JWT Authentication** built with **Node.js**, **Express.js**, and **MySQL**. Supports user registration, login, token refresh, and full product CRUD protected by JWT.
 
 ## Features
 
+- ✅ **JWT Authentication**: Access token + Refresh token flow
 - ✅ **CRUD Operations**: Create, Read, Update, Delete products
 - ✅ **RESTful API**: Standard HTTP methods (GET, POST, PUT, DELETE)
-- ✅ **Database Integration**: SQL Server/MSSQL integration with mssql package
+- ✅ **Database Integration**: MySQL integration with mysql2 package
 - ✅ **Error Handling**: Proper error handling and validation
-- ✅ **Environment Configuration**: Secure database credentials using .env
+- ✅ **Swagger Docs**: Interactive API documentation at `/api-docs`
+- ✅ **Environment Configuration**: Secure credentials using .env
 
 ## Tech Stack
 
 - **Runtime**: Node.js
 - **Framework**: Express.js
-- **Database**: SQL Server (MSSQL)
+- **Database**: MySQL
 - **Dependencies**:
   - `express` - Web framework
-  - `mssql` - SQL Server client
+  - `mysql2` - MySQL client
+  - `bcryptjs` - Password hashing
+  - `jsonwebtoken` - JWT generation and verification
+  - `swagger-jsdoc` + `swagger-ui-express` - API documentation
   - `dotenv` - Environment variables management
 
 ## Project Structure
 
 ```
-product-manager-api/
+rest-auth-api/
 ├── src/
 │   ├── config/
-│   │   └── db.js                 # Database connection configuration
+│   │   └── db.js                    # MySQL connection pool
 │   ├── controllers/
-│   │   └── productController.js  # Business logic for products
+│   │   ├── authController.js        # Register, login, logout, refresh, getMe
+│   │   └── productController.js     # CRUD business logic
+│   ├── middlewares/
+│   │   └── authMiddleware.js        # JWT verification middleware
 │   ├── routes/
-│   │   └── productRoutes.js      # API route definitions
-│   └── app.js                    # Express app setup
-├── .env                           # Environment variables
-├── package.json                   # Project dependencies
-└── README.md                      # This file
+│   │   ├── authRoutes.js            # /api/auth/* routes
+│   │   └── productRoutes.js         # /api/products/* routes
+│   └── app.js                       # Express app setup + Swagger
+├── DBMySQL.sql                       # MySQL schema + seed data
+├── .env                              # Environment variables
+├── package.json                      # Project dependencies
+└── README.md                         # This file
 ```
 
 ## Installation
@@ -42,14 +52,14 @@ product-manager-api/
 ### Prerequisites
 
 - Node.js (v14 or higher)
-- SQL Server or SQL Server Express
+- MySQL Server
 - npm or yarn
 
 ### Steps
 
-1. **Clone the repository** (or navigate to project folder)
+1. **Navigate to project folder**
    ```bash
-   cd product-manager-api
+   cd rest-auth-api
    ```
 
 2. **Install dependencies**
@@ -57,99 +67,74 @@ product-manager-api/
    npm install
    ```
 
-3. **Configure database connection**
-   - Create a `.env` file in the root directory
-   - Add your SQL Server connection details:
+3. **Configure environment variables**
+   - Create a `.env` file in the root directory:
      ```
-     DB_SERVER=your_server_name
-     DB_USER=your_username
-     DB_PASSWORD=your_password
-     DB_DATABASE=product_db
-     DB_PORT=1433
      PORT=3000
+     DB_HOST=localhost
+     DB_PORT=3306
+     DB_USER=root
+     DB_PASSWORD=your_password
+     DB_NAME=rest_auth_api
+     ACCESS_TOKEN_SECRET=your_access_token_secret
+     REFRESH_TOKEN_SECRET=your_refresh_token_secret
+     ACCESS_TOKEN_EXPIRES_IN=15m
+     REFRESH_TOKEN_EXPIRES_IN=7d
      ```
 
-4. **Create database and table** (SQL Server)
-   ```sql
-   CREATE DATABASE product_db;
-   USE product_db;
-   
-   CREATE TABLE products (
-     id INT PRIMARY KEY IDENTITY(1,1),
-     name NVARCHAR(100) NOT NULL,
-     description NVARCHAR(255),
-     price DECIMAL(10, 2) NOT NULL,
-     quantity INT NOT NULL DEFAULT 0,
-     created_at DATETIME DEFAULT GETDATE()
-   );
+4. **Create database and tables** (MySQL)
+   ```bash
+   mysql -u root -p < DBMySQL.sql
    ```
 
 5. **Run the application**
    ```bash
-   npm start
+   npm start        # production
+   npm run dev      # development with nodemon
    ```
-   The API will be available at `http://localhost:3000`
+   - API: `http://localhost:3000`
+   - Swagger Docs: `http://localhost:3000/api-docs`
 
 ## API Endpoints
 
-### Get All Products
-```
-GET /api/products
-```
-**Response**: Array of all products
+### Auth (`/api/auth`)
 
-### Get Product by ID
-```
-GET /api/products/:id
-```
-**Response**: Single product object
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/register` | No | Register new user |
+| POST | `/login` | No | Login, get access + refresh token |
+| POST | `/logout` | No | Logout, invalidate refresh token |
+| POST | `/refresh-token` | No | Get new access token |
+| GET | `/me` | JWT | Get current user info |
 
-### Create New Product
-```
-POST /api/products
-Content-Type: application/json
+### Products (`/api/products`) — all require JWT
 
-{
-  "name": "Product Name",
-  "description": "Product Description",
-  "price": 99.99,
-  "quantity": 10
-}
-```
-**Response**: Created product with ID
-
-### Update Product
-```
-PUT /api/products/:id
-Content-Type: application/json
-
-{
-  "name": "Updated Name",
-  "description": "Updated Description",
-  "price": 89.99,
-  "quantity": 15
-}
-```
-**Response**: Updated product object
-
-### Delete Product
-```
-DELETE /api/products/:id
-```
-**Response**: Success message
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Get all products |
+| GET | `/:id` | Get product by ID |
+| POST | `/` | Create new product |
+| PUT | `/:id` | Update product |
+| DELETE | `/:id` | Delete product |
 
 ## Testing
 
-Use **Postman**, **Thunder Client**, or **cURL** to test the API:
+Use **Postman**, **Thunder Client**, or the built-in **Swagger UI** at `http://localhost:3000/api-docs`.
 
 ```bash
-# Get all products
-curl http://localhost:3000/api/products
-
-# Create product
-curl -X POST http://localhost:3000/api/products \
+# Register
+curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Laptop","price":999.99,"quantity":5}'
+  -d '{"username":"john","email":"john@example.com","password":"123456"}'
+
+# Login
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"123456"}'
+
+# Get all products (with token)
+curl http://localhost:3000/api/products \
+  -H "Authorization: Bearer <accessToken>"
 ```
 
 ## Key Concepts Demonstrated
@@ -167,19 +152,12 @@ This project showcases:
 - How Express.js handles HTTP requests and responses
 - Async operations in Node.js using async/await syntax
 - Database connectivity and query execution
+- JWT Access Token + Refresh Token flow
 - MVC architecture pattern in backend development
-- CRUD operations implementation
-- Error handling best practices
-
-## Future Enhancements
-
-- [ ] Add authentication and authorization
-- [ ] Implement input validation and sanitization
-- [ ] Add request/response logging
-- [ ] Write unit tests
-- [ ] Deploy to cloud (Azure, AWS, Heroku)
-- [ ] Add pagination for large datasets
-- [ ] Implement caching mechanisms
+- CRUD operations with MySQL
+- Password hashing with bcryptjs
+- Middleware-based route protection
+- Interactive API documentation with Swagger
 
 ## Author
 
